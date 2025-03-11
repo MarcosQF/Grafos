@@ -30,7 +30,7 @@ if __name__ == "__main__":
     grafo.adicionar_aresta('E', 'C', 45)
     grafo.adicionar_aresta('E', 'D', 50)
 
-    caminho, custo_total = grafo.resolver_tsp('E')
+    caminho, custo_total = grafo.dfs_tsp('D')
 
     print(f"Caminho do TSP: {caminho}")
     print(f"Custo Total: {custo_total}")

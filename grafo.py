@@ -1,7 +1,6 @@
 import heapq
 import itertools
 
-
 class Node:
     def __init__(self, valor):
         self.valor = valor
@@ -70,33 +69,6 @@ class Grafo:
             print(f'Vértice: [{chave}] Arestas: ', end='')
             valor.display()
 
-    def calcular_peso_caminho(self, caminho):
-        peso_total = 0
-        for i in range(len(caminho) - 1):
-            peso = self.lista_vertices[caminho[i]].obter_peso(caminho[i + 1])
-            if peso is None:
-                return float('inf')
-            peso_total += peso
-        return peso_total
-
-    def resolver_tsp(self, origem):
-        vertices = list(self.lista_vertices.keys())
-        vertices.remove(origem)
-
-        min_peso = float('inf')
-        melhor_caminho = []
-
-        for permutacao in itertools.permutations(vertices):
-            caminho = [origem] + list(permutacao) + [origem]
-            peso_caminho = self.calcular_peso_caminho(caminho)
-
-
-            if peso_caminho < min_peso:
-                min_peso = peso_caminho
-                melhor_caminho = caminho
-
-        return melhor_caminho, min_peso
-
     def dijkstra_com_menor_peso(self, origem, destino):
         pq = [(0, origem, [])]
         distancias = {v: float('inf') for v in self.lista_vertices}
@@ -127,3 +99,43 @@ class Grafo:
 
         return None, float('inf')
 
+    def dfs_tsp(self, inicio):
+        vertices = list(self.lista_vertices.keys())
+        vertices.remove(inicio)
+
+        melhor_caminho = None
+        menor_peso = float('inf')
+
+
+        def dfs(caminho_atual, vertices_restantes, peso_atual):
+            nonlocal melhor_caminho, menor_peso
+
+            if not vertices_restantes:
+                peso_atual += self.obter_peso_aresta(caminho_atual[-1], caminho_atual[0])
+
+                if peso_atual < menor_peso:
+                    menor_peso = peso_atual
+                    melhor_caminho = caminho_atual + [caminho_atual[0]]
+                return
+
+            for v in vertices_restantes:
+                novo_caminho = caminho_atual + [v]
+                novos_vertices_restantes = vertices_restantes.copy()
+                novos_vertices_restantes.remove(v)
+
+                novo_peso = peso_atual + self.obter_peso_aresta(caminho_atual[-1], v)
+
+                dfs(novo_caminho, novos_vertices_restantes, novo_peso)
+
+        dfs([inicio], vertices, 0)
+
+        return melhor_caminho, menor_peso
+
+    def obter_peso_aresta(self, v1, v2):
+
+        temp = self.lista_vertices[v1].cabeca
+        while temp:
+            if temp.valor == v2:
+                return temp.peso
+            temp = temp.prox
+        return float('inf')
