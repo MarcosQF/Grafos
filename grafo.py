@@ -1,4 +1,5 @@
-from queue import Queue
+import heapq
+import itertools
 
 
 class Node:
@@ -7,11 +8,12 @@ class Node:
         self.prox = None
         self.peso = 0
 
+
 class ListaEncadeada:
     def __init__(self):
         self.cabeca = None
 
-    def adicionar_node(self, valor,peso=0):
+    def adicionar_node(self, valor, peso=0):
         novo_node = Node(valor)
         novo_node.peso = peso
 
@@ -25,12 +27,21 @@ class ListaEncadeada:
 
         ultimo.prox = novo_node
 
-    def remover_primeiro(self):
-        if self.cabeca:
-            removido = self.cabeca
-            self.cabeca = self.cabeca.prox
-            return removido.valor
+    def obter_peso(self, valor):
+        temp = self.cabeca
+        while temp:
+            if temp.valor == valor:
+                return temp.peso
+            temp = temp.prox
         return None
+
+    def get_nodes(self):
+        nodes = []
+        temp = self.cabeca
+        while temp:
+            nodes.append(temp)
+            temp = temp.prox
+        return nodes
 
     def display(self):
         temp = self.cabeca
@@ -40,7 +51,6 @@ class ListaEncadeada:
             else:
                 print(f'{temp.valor} [{temp.peso}]', end='')
             temp = temp.prox
-        print('')
 
 
 class Grafo:
@@ -51,78 +61,69 @@ class Grafo:
         if vertice not in self.lista_vertices:
             self.lista_vertices[vertice] = ListaEncadeada()
 
-    def adicionar_aresta(self, v1, v2,peso=0):
+    def adicionar_aresta(self, v1, v2, peso=0):
         if v1 in self.lista_vertices and v2 in self.lista_vertices:
-            self.lista_vertices[v1].adicionar_node(v2,peso)
+            self.lista_vertices[v1].adicionar_node(v2, peso)
 
     def exibir_grafo(self):
         for chave, valor in self.lista_vertices.items():
             print(f'Vértice: [{chave}] Arestas: ', end='')
             valor.display()
 
-    def bfs(self, origem, destino):
-        fila = Queue()
-        vertices_visitados = {}
+    def calcular_peso_caminho(self, caminho):
+        peso_total = 0
+        for i in range(len(caminho) - 1):
+            peso = self.lista_vertices[caminho[i]].obter_peso(caminho[i + 1])
+            if peso is None:
+                return float('inf')
+            peso_total += peso
+        return peso_total
 
-        fila.put(origem)
-        vertices_visitados[origem] = None
+    def resolver_tsp(self, origem):
+        vertices = list(self.lista_vertices.keys())
+        vertices.remove(origem)
 
-        saltos = 0
+        min_peso = float('inf')
+        melhor_caminho = []
 
-        while not fila.empty():
-            num_novos_vizinhos = fila.qsize()
-            saltos += 1
+        for permutacao in itertools.permutations(vertices):
+            caminho = [origem] + list(permutacao) + [origem]
+            peso_caminho = self.calcular_peso_caminho(caminho)
 
-            for _ in range(num_novos_vizinhos):
-                ver_atual = fila.get()
 
-                if ver_atual == destino:
-                    caminho_atual = []
-                    while ver_atual is not None:
-                        caminho_atual.append(ver_atual)
-                        ver_atual = vertices_visitados[ver_atual]
+            if peso_caminho < min_peso:
+                min_peso = peso_caminho
+                melhor_caminho = caminho
 
-                    caminho_atual.reverse()
-                    return saltos, caminho_atual
+        return melhor_caminho, min_peso
 
-                temp = self.lista_vertices[ver_atual].cabeca
-
-                while temp:
-                    if temp.valor not in vertices_visitados:
-                        vertices_visitados[temp.valor] = ver_atual
-                        fila.put(temp.valor)
-
-                    temp = temp.prox
-
-        return None
-
-    def dfs_com_menor_peso(self, origem, destino):
-        pilha = [(origem, 0, [])]
+    def dijkstra_com_menor_peso(self, origem, destino):
+        pq = [(0, origem, [])]
+        distancias = {v: float('inf') for v in self.lista_vertices}
+        distancias[origem] = 0
         vertices_visitados = set()
 
-        menor_peso = float('inf')
-        melhor_caminho = None
+        while pq:
+            peso_acumulado, ver_atual, caminho_atual = heapq.heappop(pq)
 
-        while pilha:
-            ver_atual, peso_acumulado, caminho_atual = pilha.pop()
+            if ver_atual in vertices_visitados:
+                continue
+
+            vertices_visitados.add(ver_atual)
             caminho_atual = caminho_atual + [ver_atual]
 
             if ver_atual == destino:
+                return caminho_atual, peso_acumulado
 
-                if peso_acumulado < menor_peso:
-                    menor_peso = peso_acumulado
-                    melhor_caminho = caminho_atual
-                continue
+            temp = self.lista_vertices[ver_atual].cabeca
+            while temp:
+                novo_peso = peso_acumulado + temp.peso
 
-            if ver_atual not in vertices_visitados:
-                vertices_visitados.add(ver_atual)
+                if novo_peso < distancias[temp.valor]:
+                    distancias[temp.valor] = novo_peso
+                    heapq.heappush(pq, (novo_peso, temp.valor, caminho_atual))
 
-                temp = self.lista_vertices[ver_atual].cabeca
-                while temp:
-                    if temp.valor not in vertices_visitados:
-                        pilha.append((temp.valor, peso_acumulado + temp.peso, caminho_atual))
+                temp = temp.prox
 
-                    temp = temp.prox
-
-        return melhor_caminho, menor_peso
+        return None, float('inf')
 
